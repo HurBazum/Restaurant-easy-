@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.Design;
 using System.Data.SqlTypes;
+using System.Reflection.Metadata.Ecma335;
 
 List<Guest> guests = [
     new("Даша", 11.12m),
@@ -8,13 +9,13 @@ List<Guest> guests = [
     ];
 
 
-ICollection<Dish> Menu = [
+IList<Dish> Menu = [
     new() {Id = 1, Name = "Бургер", Price = 4.59m },
     new() { Id = 2, Name = "Картошка фри", Price = 2.59m },
     new() { Id = 3, Name = "Кофе", Price = 1.99m }
     ];
 
-Restaurant restaurant = new(Menu);
+/*Restaurant restaurant = new(Menu);
 
 restaurant.AddOrder(1, guests[0]);
 restaurant.CookDish();
@@ -22,7 +23,7 @@ restaurant.AddOrder(2, guests[1]);
 guests[1].Refill(2.01m);
 restaurant.AddOrder(2, guests[1]);
 restaurant.CookDish();
-restaurant.CheckAmountOfOrders();
+restaurant.CheckAmountOfOrders();*/
 
 
 
@@ -30,6 +31,8 @@ public class Guest(string name, decimal money)
 {
     public string Name { get; set; } = name;
     private decimal _availableMoney = money;
+    public ClientCart Cart { get; set; } = new();
+
     public decimal AvailableMoney 
     { 
         get => _availableMoney;
@@ -74,7 +77,47 @@ public class Guest(string name, decimal money)
     }
 }
 
-public class Restaurant(ICollection<Dish> menu)
+public class ClientCart()
+{
+    public ICollection<Order> Orders { get; set; } = [];
+
+    public decimal CurrentPrice => Orders.Sum(d => d.Price);
+}
+
+public enum OrderStatus
+{
+    Done,
+    Payed,
+    Cooked
+}
+public abstract class Order
+{
+    public OrderStatus Status { get; set; }
+
+
+    public string Message { get; set; }
+
+    public DateTime DoneDate { get; set; }
+    public decimal Price { get; set; }
+}
+
+public class DishOrder : Order
+{
+
+    /// <summary>
+    /// Dish or List<Dish>
+    /// </summary>
+    public Dish Value { get; set; } = null!;
+}
+
+public class DishesOrder : Order
+{
+    public IList<Dish> Dishes { get; set; } = null!;
+}
+
+
+
+public class Restaurant(IList<Dish> menu, List<Guest> guests)
 {
     public readonly Dictionary<int, Dish> Menu = menu.ToDictionary(x => x.Id, x => x);
 
@@ -83,6 +126,10 @@ public class Restaurant(ICollection<Dish> menu)
     public bool ProfitCount { get; private set; } = false;
 
     public Queue<string> CurrentOrders = new();
+
+    public ICollection<Guest> Guests = guests;
+
+    public Dictionary<int, int> jhh;
 
     public void AddOrder(int dishId, Guest guest)
     {
